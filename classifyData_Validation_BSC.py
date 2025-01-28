@@ -13,6 +13,7 @@ from scipy.special import roots_hermite
 from scipy.stats import ttest_rel
 import os
 import matplotlib.pyplot as plt
+import pdb
 #Add any function defs here for clarity
 
 #I'm going to steal a bit of this code from MNE. Method seems sound, but may need characterization.
@@ -106,6 +107,10 @@ else:
 raw.annotations.rename({"33024": "A1", "33025": "A2"})    
 tmin, tmax = -1.0, 10.0,  # in s, changed to 10.0 from 20.0, changed from 0 to -1.0
 baseline = None     #To do: add baseline
+pdb.set_trace()
+
+events = mne.events_from_annotations(raw)
+catch_trials = mne.pick_events(events[0], include=[6,7])
 
 epochs = mne.Epochs(
     raw,
@@ -115,7 +120,9 @@ epochs = mne.Epochs(
     baseline=baseline,
     verbose=False,
 )
-    
+if plot_True:
+    epochs["face"].plot(events=catch_trials)
+    plt.show()
 #
 print('How I learned to not be afraid and trust the analysis')    
 #Compute power spectral density (PSD) and signal to noise ratio (SNR)
