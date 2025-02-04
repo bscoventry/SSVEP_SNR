@@ -104,16 +104,16 @@ else:
 #Data loading and preprocessing steps were completed in above loop. Everything should be good
 #for analysis. Moving to epocing.
 
-raw.annotations.rename({"33024": "A1", "33025": "A2"})    
+combined_raw.annotations.rename({"33024": "A1", "33025": "A2"})    
 tmin, tmax = -1.0, 10.0,  # in s, changed to 10.0 from 20.0, changed from 0 to -1.0
 baseline = None     #To do: add baseline
 pdb.set_trace()
 
-events = mne.events_from_annotations(raw)
+events = mne.events_from_annotations(combined_raw)
 catch_trials = mne.pick_events(events[0], include=[6,7])
 
 epochs = mne.Epochs(
-    raw,
+    combined_raw,
     event_id=["A1", "A2"],
     tmin=tmin,
     tmax=tmax,
@@ -149,7 +149,7 @@ psds, freqs = spectrum.get_data(return_freqs=True)
 
 
 #call function to compute SNR spectrum
-snrs = snr_spectrum(psds, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1)    #2 seems to give the best results
+snrs = snr_spectrum(psds, noise_n_neighbor_freqs=3, noise_skip_neighbor_freqs=2)    #2 seems to give the best results
 
 #trials, channels, freq bins
 print("snrs.shape is below")
