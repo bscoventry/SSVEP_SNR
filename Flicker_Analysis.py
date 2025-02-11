@@ -65,11 +65,6 @@ def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
     return psd / mean_noise
 
 
-
-
-
-
-
 #Get data from folder
 gdf_directory = 'C:/Users/cmkro/Documents/2025_Research/SSVEP_Analysis/Participant_Data/Sorted' #Includes Runs 1-6 for all participants. Does NOT include Intro or Outro Runs.
 gdf_files = [f for f in os.listdir(gdf_directory) if f.endswith('.gdf')]
@@ -124,11 +119,30 @@ else:
 #My Questions
 #Do I need baseline?    
 
+#This was assumed:
+#C1, D1, E2, F1 at 12hz
+#H1, H2, H3, H4 is at 6hz
+
+#This is the data based on the plot:
+#Plots saved are before asr cleaning
+#H2 is 3hz?
+#H1 is 3hz and 6hz?
+#H3 is 6hz, maybe 3hz but less so, most prominent stuff
+#H4 is only 6hz
+#D1 is 6hz
+#C1 is 6hz    
+#E2 is 6hz
+#F1 is maybe 12hz
+    
 
 
 # Construct epochs
-combined_raw.annotations.rename({"33031": "H2", "33030": "H1", "33032": "H3", "33033": "H4", "33027": "D1",
-                                 "33026": "C1", "33028": "E2", "33029": "F1"})   
+#combined_raw.annotations.rename({"33031": "H2", "33030": "H1", "33032": "H3", "33033": "H4", "33027": "D1",
+                                 #"33026": "C1", "33028": "E2", "33029": "F1"})   
+#combined_raw.annotations.rename({"33029": "F1"})     
+
+combined_raw.annotations.rename({"33032": "H3"})       
+
 events, _ = mne.events_from_annotations(combined_raw, verbose=False)
 tmin, tmax = -1.0, 10.0, #seconds
 baseline = None   
@@ -137,7 +151,9 @@ baseline = None
 
 epochs = mne.Epochs(
     combined_raw,
-    event_id=["H2", "H1", "H3", "H4", "D1", "C1", "E2", "F1"],
+    #event_id=["H2", "H1", "H3", "H4", "D1", "C1", "E2", "F1"],
+    event_id=["H3"],
+    #event_id=["F1"],
     tmin=tmin,
     tmax=tmax,
     baseline=baseline,
@@ -167,11 +183,14 @@ psds, freqs = spectrum.get_data(return_freqs=True)
 
 
 #call function to compute SNR spectrum
-snrs = snr_spectrum(psds, noise_n_neighbor_freqs=3, noise_skip_neighbor_freqs=2)    #2 seems to give the best results for second parameter
+#LOOK INTO THIS
 
-print("snrs:")
+#3 and 2
 
 
+#Here, we want to compare power at each bin with average power of the three neighboring bins (on each side) 
+#and skip one bin directly next to it.
+snrs = snr_spectrum(psds, noise_n_neighbor_freqs=3, noise_skip_neighbor_freqs=4)    #2 seems to give the best results for second parameter
 
 #---------------------------------------------------------------------------------#
 #Debugging
@@ -196,6 +215,9 @@ print(epochs.times[0], epochs.times[-1])  # Start and end times
 
 
 
+
+tick_spacing = 1
+
 #Plotting SNR & PSD Spectra
 fig, axes = plt.subplots(2, 1, sharex="all", sharey="none", figsize=(8, 5))
 freq_range = range(
@@ -210,6 +232,8 @@ axes[0].fill_between(
     freqs[freq_range], psds_mean - psds_std, psds_mean + psds_std, color="b", alpha=0.2
 )
 axes[0].set(title="PSD spectrum", ylabel="Power Spectral Density [dB]")
+
+
 
 # SNR spectrum
 snr_mean = snrs.mean(axis=(0, 1))[freq_range]
@@ -226,15 +250,13 @@ axes[1].set(
     ylim=[-2, 30],
     xlim=[fmin, fmax],
 )
+
+axes[1].set_xticks(np.arange(fmin, fmax + 1, tick_spacing))  # Set tick locations
+
 fig.show()
 plt.show()
 
-
-
 exit()
-
-
-#Below is for after we figure out SNR
 
 #--------------------------------------------------------------------------------------#
 #Statistical Analyses
@@ -248,13 +270,14 @@ exit()
 stim_freq_12hz = 12.0
 stim_freq_6hz = 6.0
 
+stim_freq_5hz = 4.0
+
 # find index of frequency bin closest to stimulation frequency
 i_bin_12hz = np.argmin(abs(freqs - stim_freq_12hz))
 i_bin_6hz = np.argmin(abs(freqs - stim_freq_6hz))
 
+i_bin_5hz = np.argmin(abs(freqs - stim_freq_5hz))
 
-
-# could be updated to support multiple frequencies
 
 # for later, we will already find the 15 Hz bin and the 1st and 2nd harmonic
 # for both.
@@ -264,11 +287,19 @@ i_bin_6hz = np.argmin(abs(freqs - stim_freq_6hz))
 #i_bin_30hz = np.argmin(abs(freqs - 30))
 #i_bin_45hz = np.argmin(abs(freqs - 45))
 
-#i_trial_E2 = np.where(epochs.annotations.description == "E2")[0]
+
+#Examples
+#C1, D1, E2, F1 at 12hz
+#H1, H2, H3, H4 is at 6hz
+
 
 #Get indices for different trial types
-i_trial_A1 = np.where(epochs.annotations.description == "A1")[0]
-i_trial_A2 = np.where(epochs.annotations.description == "A2")[0]
+i_trial_C1_12 = np.where(epochs.annotations.description == "C1")[0]
+i_trial_H1_6 = np.where(epochs.annotations.description == "H1")[0]
+
+#test if H1 is actually different
+i_trial_H1_5 = np.where(epochs.annotations.description == "H1")[0]
+
 #add remaining conditions
 
 # Define different ROIs
@@ -289,38 +320,62 @@ picks_roi_vis = mne.pick_types(
 )
 
 
-#This should be the SNR of A1 epochs at 12hz, in ROI
-snrs_target_A1 = snrs[i_trial_A1, :, i_bin_12hz][:, picks_roi_vis]
-print("sub 2, A1 trials, SNR at 12 Hz")
-print(f"average SNR (occipital ROI): {snrs_target_A1.mean()}")
+#This should be the SNR of C1 epochs at 12hz, in ROI
+snrs_target_C1_12 = snrs[i_trial_C1_12, :, i_bin_12hz][:, picks_roi_vis]
+print("C1 trials, SNR at 12 Hz")
+print(f"average SNR (occipital ROI): {snrs_target_C1_12.mean()}")
 
-#This should be the SNR of A2 epochs at 6hz, in ROI
-snrs_target_A2 = snrs[i_trial_A2, :, i_bin_6hz][:, picks_roi_vis]
-print("sub 2, A2 trials, SNR at 6 Hz")
-print(f"average SNR (occipital ROI): {snrs_target_A2.mean()}")
+#This should be the SNR of H1 epochs at 6hz, in ROI
+snrs_target_H1_6 = snrs[i_trial_H1_6, :, i_bin_6hz][:, picks_roi_vis]
+print("H1 trials, SNR at 6 Hz")
+print(f"average SNR (occipital ROI): {snrs_target_H1_6.mean()}")
+
+#This should be the SNR of H1 epochs at 3hz, in ROI
+snrs_target_H1_5 = snrs[i_trial_H1_5, :, i_bin_5hz][:, picks_roi_vis]
+print("H1 trials, SNR at 4 Hz")
+print(f"average SNR (occipital ROI): {snrs_target_H1_5.mean()}")
+
+
+
+#exit()
+
+
 
 # get average SNR at 6 Hz for ALL channels
-snrs_6hz_A2 = snrs[i_trial_A2, :, i_bin_6hz]  #all channels
-snrs_6hz_chaverage = snrs_6hz_A2.mean(axis=0)
+snrs_6hz_H1 = snrs[i_trial_H1_6, :, i_bin_6hz]  #all channels
+snrs_6hz_chaverage = snrs_6hz_H1.mean(axis=0)
 #print("SNR at 6Hz for A2 epochs, all channels:")
 
 # get average SNR at 12 Hz for ALL channels
-snrs_12Hz_A1 = snrs[i_trial_A1, :, i_bin_12hz]
-snrs_12hz_chaverage = snrs_12Hz_A1.mean(axis=0)
+snrs_12Hz_C1 = snrs[i_trial_C1_12, :, i_bin_12hz]
+snrs_12hz_chaverage = snrs_12Hz_C1.mean(axis=0)
 #print("SNR at 12Hz for A1 epochs, all channels:")
 
+#test
+snrs_5hz_H1 = snrs[i_trial_H1_5, :, i_bin_5hz]  #all channels
+snrs_5hz_chaverage = snrs_5hz_H1.mean(axis=0)
+
+
 # plot SNR topography
-#fig, ax = plt.subplots(1)
-#mne.viz.plot_topomap(snrs_6hz_chaverage, epochs.info, vlim=(1, None), axes=ax)
-#mne.viz.plot_topomap(snrs_12hz_chaverage, epochs.info, vlim=(1, None), axes=ax)
+fig, ax = plt.subplots(1)
+mne.viz.plot_topomap(snrs_6hz_chaverage, epochs.info, vlim=(1, None), axes=ax)
+mne.viz.plot_topomap(snrs_12hz_chaverage, epochs.info, vlim=(1, None), axes=ax)
 
-print("sub 2, A1 trials, SNR at 12 Hz")
-print(f"average SNR (occipital ROI): {snrs_target_A1.mean()}")
-print(f"average SNR (all channels) for A1 trials: {snrs_12hz_chaverage.mean()}")
+print("C1 trials, SNR at 12 Hz")
+print(f"average SNR (occipital ROI): {snrs_target_C1_12.mean()}")
+print(f"average SNR (all channels) for C1 trials: {snrs_12hz_chaverage.mean()}")
 
-print("sub 2, A2 trials, SNR at 6 Hz")
-print(f"average SNR (occipital ROI): {snrs_target_A2.mean()}")
-print(f"average SNR (all channels) for A2 trials: {snrs_6hz_chaverage.mean()}")
+print("H1 trials, SNR at 6 Hz")
+print(f"average SNR (occipital ROI): {snrs_target_H1_6.mean()}")
+print(f"average SNR (all channels) for H1 trials: {snrs_6hz_chaverage.mean()}")
+
+print("H1 trials, SNR at 4 Hz")
+print(f"average SNR (occipital ROI): {snrs_target_H1_5.mean()}")
+print(f"average SNR (all channels) for H1 trials: {snrs_5hz_chaverage.mean()}")
+
+
+exit()
+
 
 
 
