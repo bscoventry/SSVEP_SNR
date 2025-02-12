@@ -82,7 +82,8 @@ for gdf_file in gdf_files:
      montage = mne.channels.make_standard_montage("standard_1020")
      raw.set_montage(montage)
      #highpass filter to get rid of slow drifts (recommended for asr)
-     raw.filter(1., None, fir_design='firwin')
+     #raw.filter(1., None, fir_design='firwin')
+     raw.filter(1., 40., fir_design='firwin')
      #Remove notch_freqs
      raw.notch_filter(freqs=notch_freqs,notch_widths=5)
      #configure asr object
@@ -216,7 +217,7 @@ print(epochs.times[0], epochs.times[-1])  # Start and end times
 
 
 
-tick_spacing = 1
+#tick_spacing = 1
 
 #Plotting SNR & PSD Spectra
 fig, axes = plt.subplots(2, 1, sharex="all", sharey="none", figsize=(8, 5))
@@ -251,7 +252,7 @@ axes[1].set(
     xlim=[fmin, fmax],
 )
 
-axes[1].set_xticks(np.arange(fmin, fmax + 1, tick_spacing))  # Set tick locations
+#axes[1].set_xticks(np.arange(fmin, fmax + 1, tick_spacing))  # Set tick locations
 
 fig.show()
 plt.show()
@@ -405,4 +406,17 @@ epochs["A1"].plot(
     event_color=dict(A1="blue"),
 )
 
-#no events
+
+
+
+
+
+#Next steps
+#figure out smearing
+#compare SNRS at each event to each other 
+#Cut out bad participants based on bad channels
+
+
+#look at SNR figure 
+#what channels are being used in the SNR of the plot?
+#
