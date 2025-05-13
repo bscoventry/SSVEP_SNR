@@ -84,6 +84,11 @@ def getRMS(signal):
                 rmsVec[x,y] = np.sqrt(np.nanmean(np.power(curChannel[x,y,:],2)))
         rms[channel] = rmsVec
     return rms
+
+def plotTopos():
+    chs = ['Oz', 'Fpz', 'T7', 'T8']
+# when the montage is set, it is transformed to the "head" coordinate frame
+
 #Get data from folder
 gdf_directory = 'C:/Users/cmkro/Documents/2025_Research/SSVEP_Analysis/Participant_Data/Sorted' #Includes Runs 1-6 for all participants. Does NOT include Outro Runs (white flashes for validation).
 gdf_files = [f for f in os.listdir(gdf_directory) if f.endswith('.gdf')]
@@ -159,7 +164,41 @@ spectrum = epochs.compute_psd(
 psds, freqs = spectrum.get_data(return_freqs=True)
 
 rmsValues = getRMS(epochs)
+#Convert RMS into dataframe
 
+VidList = []
+trialList = []
+electrodeList = []
+ROIALL = []
+ROIALL_CAT = []
+rmsList = []
+for keys in rmsValues.keys():
+    curVid = keys
+    curRMS = rmsValues[keys]
+    [nro,nco] = np.shape(curRMS)
+    for trial in range(nro):
+        curTrial = trial
+        for elec in range(nco):
+            curElec = elec
+            rmsList.append(curRMS[trial,elec])
+            VidList.append(keys)
+            trialList.append(trial)
+            electrodeList.append(elec)
+            if 11 <=elec < 19:
+                ROIALL.append('ROI')
+                ROIALL_CAT.append(1)
+            else:
+                ROIALL.append('ALL')
+                ROIALL_CAT.append(0)
+rms_list = pd.DataFrame(
+    {'Video': VidList,
+     'Electrode': electrodeList,
+     'Trial': trialList,
+     'ROIALL': ROIALL,
+     'ROIALL_CAT': ROIALL_CAT,
+     'RMS' : rmsList
+    })
+rms_list.to_csv('rms_stats.csv', index=False)
 #Compare power at each bin with average power of the three neighboring bins (on each side) 
 #and skip one bin directly next to it.
 snrs = snr_spectrum(psds, noise_n_neighbor_freqs=3, noise_skip_neighbor_freqs=1)   
