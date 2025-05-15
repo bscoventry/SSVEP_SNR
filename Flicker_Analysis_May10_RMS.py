@@ -84,13 +84,40 @@ def getRMS(signal):
                 rmsVec[x,y] = np.sqrt(np.nanmean(np.power(curChannel[x,y,:],2)))
         rms[channel] = rmsVec
     return rms
+def sortRMS(Video,rmsValues):
+    trialList = []
+    electrodeList = []
+    rmsListROI = []
+    rmsListALL = []
+    rmsListNonROI = []
+    #["H2", "H1", "H3", "H4", "D1", "C1", "E2", "F1"]
+    curRMS = rmsValues[Video]
+    [nro,nco] = np.shape(curRMS)
+    for trial in range(nro):
+         curTrial = trial
+         meanROI = []
+         meanALL = []
+         meanNON = []
+         trialList.append(trial)
+         for elec in range(nco):
+             curElec = elec
+             meanALL.append(curRMS[trial,elec])
+             if 11 <=elec < 19:
+                 meanROI.append(curRMS[trial,elec])
+             else:
+                 meanNON.append(curRMS[trial,elec])
+         rmsListROI.append(np.nanmean(meanROI))
+         rmsListALL.append(np.nanmean(meanALL))
+         rmsListNonROI.append(np.nanmean(meanNON))
+    return rmsListROI,rmsListALL,rmsListNonROI,trialList
 
-def plotTopos():
-    chs = ['Oz', 'Fpz', 'T7', 'T8']
+
+#def plotTopos():
+    #chs = ['Oz', 'Fpz', 'T7', 'T8']
 # when the montage is set, it is transformed to the "head" coordinate frame
 
 #Get data from folder
-gdf_directory = 'C:/Users/cmkro/Documents/2025_Research/SSVEP_Analysis/Participant_Data/Sorted' #Includes Runs 1-6 for all participants. Does NOT include Outro Runs (white flashes for validation).
+gdf_directory = 'C:\CodeRepos\SSVEP\SSVEP_Sorted\SSVEP_Sorted' #Includes Runs 1-6 for all participants. Does NOT include Outro Runs (white flashes for validation).
 gdf_files = [f for f in os.listdir(gdf_directory) if f.endswith('.gdf')]
 raw_list = []
 numLoops = 0
@@ -172,31 +199,61 @@ electrodeList = []
 ROIALL = []
 ROIALL_CAT = []
 rmsList = []
-for keys in rmsValues.keys():
-    curVid = keys
-    curRMS = rmsValues[keys]
-    [nro,nco] = np.shape(curRMS)
-    for trial in range(nro):
-        curTrial = trial
-        for elec in range(nco):
-            curElec = elec
-            rmsList.append(curRMS[trial,elec])
-            VidList.append(keys)
-            trialList.append(trial)
-            electrodeList.append(elec)
-            if 11 <=elec < 19:
-                ROIALL.append('ROI')
-                ROIALL_CAT.append(1)
-            else:
-                ROIALL.append('ALL')
-                ROIALL_CAT.append(0)
+#["H2", "H1", "H3", "H4", "D1", "C1", "E2", "F1"]
+curRMS = rmsValues["H2"]
+
+# for keys in rmsValues.keys():
+#     curVid = keys
+#     curRMS = rmsValues[keys]
+#     [nro,nco] = np.shape(curRMS)
+#     for trial in range(nro):
+#         curTrial = trial
+#         for elec in range(nco):
+#             curElec = elec
+#             rmsList.append(curRMS[trial,elec])
+#             VidList.append(keys)
+#             trialList.append(trial)
+#             electrodeList.append(elec)
+#             if 11 <=elec < 19:
+#                 ROIALL.append('ROI')
+#                 ROIALL_CAT.append(1)
+#             else:
+#                 ROIALL.append('ALL')
+#                 ROIALL_CAT.append(0)
+rmsListROIH2,rmsListALLH2,rmsListNonROIH2,trialListH2=sortRMS("H2",rmsValues)
+rmsListROIH1,rmsListALLH1,rmsListNonROIH1,trialListH1=sortRMS("H1",rmsValues)
+rmsListROIH3,rmsListALLH3,rmsListNonROIH3,trialListH3=sortRMS("H3",rmsValues)
+rmsListROIH4,rmsListALLH4,rmsListNonROIH4,trialListH4=sortRMS("H4",rmsValues)
+rmsListROID1,rmsListALLD1,rmsListNonROID1,trialListD1=sortRMS("D1",rmsValues)
+rmsListROIC1,rmsListALLC1,rmsListNonROIC1,trialListC1=sortRMS("C1",rmsValues)
+rmsListROIF1,rmsListALLF1,rmsListNonROIF1,trialListF1=sortRMS("F1",rmsValues)
+rmsListROIE2,rmsListALLE2,rmsListNonROIE2,trialListE2=sortRMS("E2",rmsValues)
 rms_list = pd.DataFrame(
-    {'Video': VidList,
-     'Electrode': electrodeList,
-     'Trial': trialList,
-     'ROIALL': ROIALL,
-     'ROIALL_CAT': ROIALL_CAT,
-     'RMS' : rmsList
+    {'Trials': trialListH2,
+     'H2_RMS_ROI': rmsListROIH2,
+     'H2_RMS_ALL': rmsListALLH2,
+     'H2_RMS_ALL_NOROI': rmsListNonROIH2,
+     'H1_RMS_ROI': rmsListROIH1,
+     'H1_RMS_ALL': rmsListALLH1,
+     'H1_RMS_ALL_NOROI': rmsListNonROIH1,
+     'H3_RMS_ROI': rmsListROIH3,
+     'H3_RMS_ALL': rmsListALLH3,
+     'H3_RMS_ALL_NOROI': rmsListNonROIH3,
+     'H4_RMS_ROI': rmsListROIH4,
+     'H4_RMS_ALL': rmsListALLH4,
+     'H4_RMS_ALL_NOROI': rmsListNonROIH4,
+     'D1_RMS_ROI': rmsListROID1,
+     'D1_RMS_ALL': rmsListALLD1,
+     'D1_RMS_ALL_NOROI': rmsListNonROID1,
+     'C1_RMS_ROI': rmsListROIC1,
+     'C1_RMS_ALL': rmsListALLC1,
+     'C1_RMS_ALL_NOROI': rmsListNonROIC1,
+     'F1_RMS_ROI': rmsListROIF1,
+     'F1_RMS_ALL': rmsListALLF1,
+     'F1_RMS_ALL_NOROI': rmsListNonROIF1,
+     'E2_RMS_ROI': rmsListROIE2,
+     'E2_RMS_ALL': rmsListALLE2,
+     'E2_RMS_ALL_NOROI': rmsListNonROIE2
     })
 rms_list.to_csv('rms_stats.csv', index=False)
 #Compare power at each bin with average power of the three neighboring bins (on each side) 
